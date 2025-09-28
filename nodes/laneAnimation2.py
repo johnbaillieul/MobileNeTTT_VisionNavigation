@@ -1,106 +1,101 @@
 
+
 #!/usr/bin/env python3
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image
+from nav_msgs.msg import Path
+from geometry_msgs.msg import PoseStamped
+from cv_bridge import CvBridge, CvBridgeError
 import cv2
 import numpy as np
+import sys
 
-def bezier_point(p0, p1, p2, t):
-    return (
-        int((1-t)**2 * p0[0] + 2*(1-t)*t*p1[0] + t**2 * p2[0]),
-        int((1-t)**2 * p0[1] + 2*(1-t)*t*p1[1] + t**2 * p2[1])
-    )
+class BezierFromCamera(Node):
+    def __init__(self, show_debug: bool = True):
+        super().__init__('bezier_from_camera')
+        self.bridge = CvBridge()
+        self.show_debug = show_debug
 
-def draw_curved_dash_line(overlay, h, w, base_x, base_y, vp_x, vp_y, sway,
-                          dash_len=0.05, spacing=0.15, phase=0, color=(0,255, 0)):
-    ctrl_x = base_x + sway
-    ctrl_y = (base_y + vp_y) // 2
-    p0, p1, p2 = (base_x, base_y), (ctrl_x, ctrl_y), (vp_x, vp_y)
+        # Sub to Gazebo camera (make sure this matches your camera topic)
+        self.image_sub = self.create_subscription(
+            Image, "/camera/image", self.image_callback, 10
+        )
 
-    cycle = dash_len + spacing
-    num_dashes = int(1 / cycle) + 2
+        # Pub smoothed path
+        self.path_pub = self.create_publisher(Path, "/bezier_path", 10)
 
-    for i in range(num_dashes):
-        t0 = (i * cycle + phase) % 1.0
-        t1 = (t0 + dash_len) % 1.0
+        self.get_logger().info("BezierFromCamera node started, listening to /camera/image_raw")
 
-        if t1 < t0:
-            continue
+    def image_callback(self, msg):
+        try:
+            # Convert ROS → OpenCV
+            frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+        except CvBridgeError as e:
+            self.get_logger().error(f"cv_bridge error: {e}")
+            return
 
-        x0, y0 = bezier_point(p0, p1, p2, t0)
-        x1, y1 = bezier_point(p0, p1, p2, t1)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        thickness = max(1, int(20 * (1 - t0)))
-        cv2.line(overlay, (x0, y0), (x1, y1), color, thickness)
+        # Edge detection
+        edges = cv2.Canny(gray, 80, 150)
 
-def main():
-    cap = cv2.VideoCapture(0)  # <-- /dev/video5
-    if not cap.isOpened():
-        print("Error: Could not open camera at /dev/video5")
-        return
+        # Find contours
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        if len(contours) < 1:
+            self.get_logger().warn("No contours found in image")
+            return
 
-    lk_params = dict(winSize=(15,15), maxLevel=2,
-                     criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
-    feature_params = dict(maxCorners=100, qualityLevel=0.3, minDistance=7, blockSize=7)
+        # Pick largest contour (most likely road/wall)
+        contour = max(contours, key=cv2.contourArea)
+        pts = contour.squeeze()
+        if pts.ndim != 2 or pts.shape[0] < 3:
+            self.get_logger().warn("Not enough points in contour for Bezier curve")
+            return
 
-    ret, old_frame = cap.read()
-    old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
-    p0 = cv2.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
+        # Pick 3 points for quadratic Bezier (start, mid, end of contour)
+        P0 = pts[0]
+        P1 = pts[len(pts)//2]
+        P2 = pts[-1]
 
-    sway_smooth = 0
-    phase = 0
+        # Generate quadratic Bezier curve
+        t = np.linspace(0, 1, 50)
+        bez_x = (1-t)**2 * P0[0] + 2*(1-t)*t*P1[0] + t**2 * P2[0]
+        bez_y = (1-t)**2 * P0[1] + 2*(1-t)*t*P1[1] + t**2 * P2[1]
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # Publish as Path
+        path_msg = Path()
+        path_msg.header.frame_id = "camera_link"   # or base_link depending on your TF tree
+        for x, y in zip(bez_x, bez_y):
+            pose = PoseStamped()
+            pose.pose.position.x = float(x)
+            pose.pose.position.y = float(y)
+            path_msg.poses.append(pose)
+        self.path_pub.publish(path_msg)
 
-        # Optical flow
-        p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
-        h, w, _ = frame.shape
-        vp_x, vp_y = w // 2, int(h * 0.3)
+        # Debug visualization
+        if self.show_debug:
+            debug = frame.copy()
+            cv2.drawContours(debug, [contour], -1, (0,255,0), 1)
+            for x, y in zip(bez_x.astype(int), bez_y.astype(int)):
+                cv2.circle(debug, (x,y), 2, (0,0,255), -1)
 
-        forward_motion = 0
-        dx = 0
+            cv2.imshow("Bezier Curve from Camera", debug)
+            cv2.waitKey(1)
 
-        if p1 is not None and st.sum() > 0:
-            good_new = p1[st == 1]
-            good_old = p0[st == 1]
+def main(args=None):
+    rclpy.init(args=args)
+    show_debug = True
+    if len(sys.argv) > 1 and sys.argv[1] == "0":
+        show_debug = False
 
-            # Horizontal turn (yaw proxy)
-            dx = np.mean(good_new[:,0] - good_old[:,0])
-
-            # Forward motion proxy: dot product with radial vector
-            vals = []
-            for (x0, y0), (x1, y1) in zip(good_old, good_new):
-                v = np.array([x1-x0, y1-y0])
-                r = np.array([x0-vp_x, y0-vp_y])
-                if np.linalg.norm(r) > 1e-5:
-                    vals.append(np.dot(v, r) / np.linalg.norm(r))
-            if len(vals) > 0:
-                forward_motion = np.mean(vals)
-
-        sway = int(dx * 5)
-        sway_smooth = int(0.8 * sway_smooth + 0.2 * sway)
-
-        # Increment phase only if forward motion detected
-        if forward_motion > 0.5:  # threshold for moving forward
-            phase = (phase - 0.02) % 1.0
-
-        overlay = frame.copy()
-        base_x, base_y = w//2, h
-
-        draw_curved_dash_line(overlay, h, w, base_x, base_y, vp_x, vp_y, sway_smooth, phase=phase)
-
-        frame = cv2.addWeighted(overlay, 0.9, frame, 0.1, 0)
-        cv2.imshow("Lane reacts to Forward Motion", frame)
-
-        old_gray = frame_gray.copy()
-        p0 = cv2.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    cap.release()
+    node = BezierFromCamera(show_debug=show_debug)
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    node.destroy_node()
+    rclpy.shutdown()
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":

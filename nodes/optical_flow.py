@@ -58,8 +58,8 @@ class OFCalculator(Node):
         self.prev_time = 0.0
         self.tracking = False
         self.min_feat_threshold = 0.6
-        self.num_ext_features = 250
-        self.num_cen_features = 150
+        self.num_ext_features = 150
+        self.num_cen_features = 50
         self.min_num_features = (2 * self.num_ext_features + self.num_cen_features) / 2
         #self.min_num_features = 200
         

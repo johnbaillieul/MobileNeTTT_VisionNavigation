@@ -49,7 +49,8 @@ install(PROGRAMS
   nodes/controller.py
   nodes/tau_computation.py
   nodes/road_marker.py 
-  nodes/bezier_optical_flow.py 
+  nodes/bezier_optical_flow.py
+  nodes/laneAnimation2.py
   DESTINATION lib/${PROJECT_NAME}
   
 )

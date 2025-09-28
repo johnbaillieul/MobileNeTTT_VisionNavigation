@@ -1,96 +1,64 @@
+
 #!/usr/bin/env python3
-import cv2
 import numpy as np
+import matplotlib.pyplot as plt
+from math import comb
 
-def bezier_point(p0, p1, p2, t):
-    return (
-        int((1-t)**2 * p0[0] + 2*(1-t)*t*p1[0] + t**2 * p2[0]),
-        int((1-t)**2 * p0[1] + 2*(1-t)*t*p1[1] + t**2 * p2[1])
-    )
+def bezier_curve(points, n=100):
+    """
+    Compute a Bezier curve from control points.
+    Works for arbitrary order depending on number of points.
+    """
+    points = np.array(points)
+    N = len(points) - 1
 
-def draw_curved_dash_line(overlay, h, w, base_x, base_y, vp_x, vp_y, sway,
-                          dash_len=0.05, spacing=0.15, color=(0,255,0)):
-    ctrl_x = base_x + sway
-    ctrl_y = (base_y + vp_y) // 2
-    p0, p1, p2 = (base_x, base_y), (ctrl_x, ctrl_y), (vp_x, vp_y)
+    def bernstein_poly(i, n, t):
+        return comb(n, i) * (t**i) * (1 - t)**(n - i)
 
-    t = 0
-    while t < 1:
-        t0, t1 = t, min(1, t + dash_len)
-        x0, y0 = bezier_point(p0, p1, p2, t0)
-        x1, y1 = bezier_point(p0, p1, p2, t1)
-        thickness = max(1, int(10 * (1 - t0)))
-        cv2.line(overlay, (x0, y0), (x1, y1), color, thickness)
-        t += dash_len + spacing
+    t_vals = np.linspace(0, 1, n)
+    curve = np.zeros((n, 2))
+    for i in range(N+1):
+        curve += np.outer(bernstein_poly(i, N, t_vals), points[i])
+    return curve
 
-def main():
-    cap = cv2.VideoCapture(2)  # <-- /dev/video5
-    if not cap.isOpened():
-        print("Error: Could not open camera at /dev/video5")
-        return
+def piecewise_bezier(points, n=100):
+    """
+    Generate multiple quadratic Bezier curves from overlapping triplets of points.
+    """
+    curves = []
+    for i in range(len(points) - 2):
+        triplet = points[i:i+3]
+        curve = bezier_curve(triplet, n)
+        curves.append(curve)
+    return curves
 
-    # Lucas–Kanade params
-    lk_params = dict(winSize=(15, 15), maxLevel=2,
-                     criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+def average_curve(curves):
+    """
+    Take pointwise average of all piecewise curves.
+    Assumes they are sampled with the same number of points.
+    """
+    stacked = np.stack(curves, axis=0)   # shape (num_curves, n, 2)
+    avg = np.mean(stacked, axis=0)       # shape (n, 2)
+    return avg
 
-    # Feature detection params
-    feature_params = dict(maxCorners=100, qualityLevel=0.3, minDistance=7, blockSize=7)
+def plot_curves(points, curves, avg_curve):
+    points = np.array(points)
+    plt.figure(figsize=(7,7))
+    plt.plot(points[:,0], points[:,1], 'ro--', label="Control Points")
 
-    # First frame
-    ret, old_frame = cap.read()
-    if not ret:
-        print("Error: No frame")
-        return
-    old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
-    p0 = cv2.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
+    for i, curve in enumerate(curves):
+        plt.plot(curve[:,0], curve[:,1], 'g-', alpha=0.4)
 
-    sway = 0
-    sway_smooth = 0
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        # Track points
-        p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
-
-        if p1 is not None and st.sum() > 0:
-            good_new = p1[st == 1]
-            good_old = p0[st == 1]
-
-            # Average horizontal displacement
-            dx = np.mean(good_new[:, 0] - good_old[:, 0])
-            sway = int(dx * 5)  # scale factor
-
-            # Smooth sway
-            sway_smooth = int(0.8 * sway_smooth + 0.2 * sway)
-
-        # Update for next iteration
-        old_gray = frame_gray.copy()
-        p0 = cv2.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
-
-        h, w, _ = frame.shape
-        overlay = frame.copy()
-
-        # Vanishing point
-        vp_x, vp_y = w // 2, int(h * 0.3)
-        base_x, base_y = w // 2, h
-
-        # Draw single dashed center line with sway
-        draw_curved_dash_line(overlay, h, w, base_x, base_y, vp_x, vp_y, sway_smooth)
-
-        # Blend overlay
-        frame = cv2.addWeighted(overlay, 0.9, frame, 0.1, 0)
-        cv2.imshow("Sparse Optical Flow Lane", frame)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    cap.release()
-    cv2.destroyAllWindows()
+    plt.plot(avg_curve[:,0], avg_curve[:,1], 'b-', linewidth=2, label="Smoothed Avg Curve")
+    plt.axis("equal")
+    plt.grid(True)
+    plt.legend()
+    plt.title("Piecewise Bézier Curves Averaged into One Smooth Path")
+    plt.show()
 
 if __name__ == "__main__":
-    main()
-
+    # Example with 5 points
+    control_points = np.array([[0,0], [2,3], [4,4], [6,3]])
+    curves = piecewise_bezier(control_points, n=200)
+    avg_curve = average_curve(curves)
+    plot_curves(control_points, curves, avg_curve)

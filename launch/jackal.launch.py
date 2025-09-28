@@ -17,7 +17,7 @@ def generate_launch_description():
     pkg_share = FindPackageShare('vision_based_navigation_ttt')
     xacro_path = PathJoinSubstitution([pkg_share, 'urdf', 'jackal_gazebo.urdf.xacro'])
     #yaml_file = PathJoinSubstitution([pkg_share, 'config', 'control.yaml'])
-    world_path = PathJoinSubstitution([pkg_share, 'GazeboWorlds', 'corridor.world'])
+    world_path = PathJoinSubstitution([pkg_share, 'GazeboWorlds', 'corridor_2.world'])
 
     robot_description = ParameterValue(
         Command(['xacro ', xacro_path]),
@@ -121,9 +121,9 @@ def generate_launch_description():
     
     bezier_optical_flow_node = Node(
         package='mobilenettt_visionnavigation',
-        executable='bezier_optical_flow.py',
-        name='bezier_optical_flow',
-        parameters=[{'image_sub_name': '/dev/video0'}, {'use_sim_time': True}],
+        executable='laneAnimation2.py',
+        name='bezier_from_camera',
+        parameters=[{'image_sub_name': '/camera/image'}, {'use_sim_time': True}],
         output='screen'
     )
 
@@ -135,8 +135,8 @@ def generate_launch_description():
         load_jsb,
         load_diffdrive,
         bridge,
-        #optical_flow_node,
-        #tau_node,
-        #controller_node,
+        optical_flow_node,
+        tau_node,
+        controller_node,
         bezier_optical_flow_node
     ])

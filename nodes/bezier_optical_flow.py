@@ -12,6 +12,25 @@ def bezier_point(p0, p1, p2, t):
         int((1-t)**2 * p0[1] + 2*(1-t)*t*p1[1] + t**2 * p2[1])
     )
 
+def draw_bezier_debug(overlay, p0, p1, p2, num_samples=50):
+    # Draw control points
+    cv2.circle(overlay, p0, 6, (0, 0, 255), -1)  # red start
+    cv2.circle(overlay, p1, 6, (255, 0, 0), -1)  # blue control
+    cv2.circle(overlay, p2, 6, (0, 255, 255), -1)  # yellow end
+
+    # Draw control polygon
+    cv2.line(overlay, p0, p1, (200, 200, 200), 1, cv2.LINE_AA)
+    cv2.line(overlay, p1, p2, (200, 200, 200), 1, cv2.LINE_AA)
+
+    # Draw curve as a sequence of dots
+    prev = p0
+    for i in range(1, num_samples + 1):
+        t = i / num_samples
+        x, y = bezier_point(p0, p1, p2, t)
+        cv2.circle(overlay, (x, y), 2, (255, 255, 0), -1)
+        cv2.line(overlay, prev, (x, y), (100, 255, 100), 1, cv2.LINE_AA)
+        prev = (x, y)
+
 def draw_curved_dash_line(overlay, h, w, base_x, base_y, vp_x, vp_y, sway,
                           dash_len=0.05, spacing=0.15, phase=0, color=(0,255,0)):
     ctrl_x = base_x + sway
@@ -57,10 +76,11 @@ class LaneVizNode(Node):
         self.phase = 0
 
     def image_callback(self, msg):
+        
         frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         h, w, _ = frame.shape
-        vp_x, vp_y = w // 2, int(h * 0.3)
+        vp_x, vp_y = w // 2, int(h * 0.5)
 
         if self.old_gray is None:
             # First frame → initialize features
@@ -88,18 +108,26 @@ class LaneVizNode(Node):
             if len(vals) > 0:
                 forward_motion = np.mean(vals)
 
-        sway = int(dx * 5)
+        sway = int(dx * 20)
         self.sway_smooth = int(0.8 * self.sway_smooth + 0.2 * sway)
 
         # Increment phase only if forward motion
         if forward_motion > 0.5:
             self.phase = (self.phase - 0.02) % 1.0
 
+       
         overlay = frame.copy()
         base_x, base_y = w//2, h
-        draw_curved_dash_line(overlay, h, w, base_x, base_y, vp_x, vp_y,
-                              self.sway_smooth, phase=self.phase)
+        ctrl_x = base_x + self.sway_smooth
+        ctrl_y = (base_y + vp_y) // 2
+        p0, p1, p2 = (base_x, base_y), (ctrl_x, ctrl_y), (vp_x, vp_y)
+        # Debug hhhBézier skeleton
 
+        draw_bezier_debug(overlay, p0, p1, p2)
+        # Draw dashed curve on top
+
+        draw_curved_dash_line(overlay, h, w, base_x, base_y, vp_x, vp_y,
+                      self.sway_smooth, phase=self.phase)
         # Blend dashes
         out_frame = cv2.addWeighted(overlay, 0.9, frame, 0.1, 0)
 
