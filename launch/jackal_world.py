@@ -10,7 +10,7 @@ import os
 
 def generate_launch_description():
     # Set up paths
-    vbn_dir = get_package_share_directory('vision_based_navigation_ttt')
+    vbn_dir = get_package_share_directory('mobilenettt_visionnavigation')
 
     # Launch arguments
     front_flea3_arg = DeclareLaunchArgument(

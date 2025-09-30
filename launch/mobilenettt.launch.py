@@ -8,13 +8,13 @@ from launch_ros.parameter_descriptions import ParameterValue
 
 def generate_launch_description():
     declared_args = [
-        DeclareLaunchArgument('x', default_value='-15'),
-        DeclareLaunchArgument('y', default_value='-4'),
+        DeclareLaunchArgument('x', default_value='-10'),
+        DeclareLaunchArgument('y', default_value='-4.5'),
         DeclareLaunchArgument('z', default_value='0'),
         DeclareLaunchArgument('yaw', default_value='0'),
     ]
 
-    pkg_share = FindPackageShare('vision_based_navigation_ttt')
+    pkg_share = FindPackageShare('mobilenettt_visionnavigation')
     xacro_path = PathJoinSubstitution([pkg_share, 'urdf', 'jackal_gazebo.urdf.xacro'])
     #yaml_file = PathJoinSubstitution([pkg_share, 'config', 'control.yaml'])
     world_path = PathJoinSubstitution([pkg_share, 'GazeboWorlds', 'corridor_2.world'])
@@ -53,6 +53,7 @@ def generate_launch_description():
         ],
         output='screen'
     )
+    
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -68,18 +69,21 @@ def generate_launch_description():
         ],        
         output='screen'
     )
-    road_marker_node = Node(
-        package = 'mobilenettt_visionnavigation',
-        executable = "road_marker.py",
-        arguments=['1'],
-        name = "road_marker_node",
-        output = "screen"
+
+    
+    ttt_node = Node(
+        package='mobilenettt_visionnavigation',
+        executable='compute_ttt.py',
+        name='tttvalues',
+        parameters=[{'image_sub_name': '/camera/image'}, {'use_sim_time': True}],
+        output='screen'
     )
+
     return LaunchDescription(declared_args + [
         set_gz_plugin_env,
         gz_world,
         robot_state_publisher,
         spawn_entity,
         bridge,
-        road_marker_node
+        ttt_node
     ])

@@ -23,12 +23,14 @@ set(msg_files
   "msg/OpticalFlow.msg"
   "msg/TauComputation.msg"
   "msg/Control.msg"
+  "msg/TTTValues.msg"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   msg/OpticalFlow.msg
   msg/TauComputation.msg
   msg/Control.msg
+  msg/TTTValues.msg
   DEPENDENCIES std_msgs sensor_msgs builtin_interfaces
 )
 
@@ -45,12 +47,8 @@ install(DIRECTORY
 
 # Install Python nodes
 install(PROGRAMS
-  nodes/optical_flow.py
-  nodes/controller.py
-  nodes/tau_computation.py
-  nodes/road_marker.py 
-  nodes/bezier_optical_flow.py
-  nodes/laneAnimation2.py
+  nodes/compute_ttt.py
+  cbam.py
   DESTINATION lib/${PROJECT_NAME}
   
 )
