@@ -38,14 +38,14 @@ jackal_velocity_controller:
     cmd_vel_timeout: 0.5
     use_stamped_vel: true
 
-    linear.x.has_velocity_limits: false
-    linear.x.has_acceleration_limits: false
-    linear.x.max_velocity: 200.0
-    linear.x.min_velocity: -200.0
-    linear.x.max_acceleration: 200.0
+    linear.x.has_velocity_limits: True
+    linear.x.has_acceleration_limits: True
+    linear.x.max_velocity: 10.0
+    linear.x.min_velocity: -10.0
+    linear.x.max_acceleration: 10.0
 
-    angular.z.has_velocity_limits: false
-    angular.z.has_acceleration_limits: false
-    angular.z.max_velocity: 200.0
-    angular.z.min_velocity: -200.0
-    angular.z.max_acceleration: 200.0
+    angular.z.has_velocity_limits: True
+    angular.z.has_acceleration_limits: True
+    angular.z.max_velocity: 10.0
+    angular.z.min_velocity: -10.0
+    angular.z.max_acceleration: 10.0

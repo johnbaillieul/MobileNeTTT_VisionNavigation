@@ -41,6 +41,7 @@ install(DIRECTORY
   gui
   config
   meshes
+  trained_weights  
   DESTINATION share/${PROJECT_NAME}
 )
 
@@ -48,7 +49,9 @@ install(DIRECTORY
 # Install Python nodes
 install(PROGRAMS
   nodes/compute_ttt.py
+  nodes/controller.py 
   cbam.py
+  
   DESTINATION lib/${PROJECT_NAME}
   
 )

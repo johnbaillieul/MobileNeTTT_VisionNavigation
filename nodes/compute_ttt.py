@@ -20,14 +20,14 @@ from cbam import CBAM
 import rclpy
 from rclpy.node import Node
 
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import TwistStamped
 from sensor_msgs.msg import Image, CameraInfo
 from mobilenettt_visionnavigation.msg import TTTValues
 from ament_index_python.packages import get_package_share_directory
 gpu_no = 0
 assert torch.cuda.is_available()
-device = torch.device(f'cuda:{gpu_no}')
-
+#device = torch.device(f'cuda:{gpu_no}')
+device = torch.device("cpu")
 
 class TauValues(Node):
 
@@ -74,7 +74,7 @@ class TauValues(Node):
         self.first_time = False
         self.attention = True
         self.spatial_att_modified = False
-        self.plot_grid = False
+        self.plot_grid = True
         
     def draw_grid_text(self, image_grid, img_h, img_w, data, rows, cols, deltaY, line_color=(0, 0, 0)):
         height, width = img_h, img_w
@@ -176,8 +176,9 @@ class TauValues(Node):
         self.first_time = False
         if self.prev_image is None:
             self.prev_image = self.frame
-            self.prev_image = PILImage.fromarray(self.prev_image)
+            self.prev_image = PILImage.fromarray(self.frame)
             self.first_time = True
+            return
         if not self.first_time:
             self.curr_image = self.frame
             crop_params = (70, 0, 340, 640)

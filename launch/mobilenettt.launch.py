@@ -53,7 +53,29 @@ def generate_launch_description():
         ],
         output='screen'
     )
-    
+    spawner_jsb = ExecuteProcess(
+        cmd=['ros2', 'run', 'controller_manager', 'spawner', 'joint_state_broadcaster'],
+        output='screen'
+    )
+
+    spawner_diffdrive = ExecuteProcess(
+        cmd=['ros2', 'run', 'controller_manager', 'spawner', 'jackal_velocity_controller'],
+        output='screen'
+    )
+
+    load_jsb = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=spawn_entity,
+            on_exit=[spawner_jsb],
+        )
+    )
+
+    load_diffdrive = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=spawner_jsb,
+            on_exit=[spawner_diffdrive],
+        )
+    )   
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -78,12 +100,21 @@ def generate_launch_description():
         parameters=[{'image_sub_name': '/camera/image'}, {'use_sim_time': True}],
         output='screen'
     )
-
+    controller_node = Node(
+        package='mobilenettt_visionnavigation',
+        executable='controller.py',
+        name='controller',
+        parameters=[{'use_sim_time': True}],
+        output='screen'
+    )
     return LaunchDescription(declared_args + [
         set_gz_plugin_env,
         gz_world,
         robot_state_publisher,
         spawn_entity,
+        load_jsb,
+        load_diffdrive,
         bridge,
-        ttt_node
+        ttt_node,
+        controller_node
     ])
