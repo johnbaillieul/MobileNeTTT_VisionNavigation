@@ -50,6 +50,7 @@ install(DIRECTORY
 install(PROGRAMS
   nodes/compute_ttt.py
   nodes/controller.py 
+  nodes/bezier_optical_flow.py
   cbam.py
   
   DESTINATION lib/${PROJECT_NAME}

@@ -80,7 +80,7 @@ class LaneVizNode(Node):
         frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         h, w, _ = frame.shape
-        vp_x, vp_y = w // 2, int(h * 0.5)
+        vp_x, vp_y = w // 2, int(h * 0.6)
 
         if self.old_gray is None:
             # First frame → initialize features
