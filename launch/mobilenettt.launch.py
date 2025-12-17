@@ -119,20 +119,24 @@ def generate_launch_description():
         executable='usb_cam_node_exe',
         name='usb_cam',
         parameters=[{
-            'video_device': camera_device,
+            'video_device': '/dev/video4',
             'image_width': 640,
             'image_height': 480,
             'framerate': 30.0,
             'pixel_format': 'yuyv',
+            'brightness': 0,
+            'contrast': 50,
+            'saturation': 64,
+            'gain': 64,
+            'auto_exposure': False,
+            'exposure': 166,
         }],
         remappings=[
             ('image_raw', '/camera/image'),
         ],
         output='screen',
         condition=UnlessCondition(use_sim)
-    )
-
-    # Real hardware controller activation
+    )    # Real hardware controller activation
     load_jsb_real = ExecuteProcess(
         cmd=['ros2', 'control', 'load_controller', '-c', '/j100_0681/controller_manager', 'joint_state_broadcaster'],
         output='screen',
