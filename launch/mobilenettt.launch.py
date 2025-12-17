@@ -2,6 +2,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, SetEnvironmentVariable, RegisterEventHandler
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitution
+from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.parameter_descriptions import ParameterValue
@@ -12,11 +13,20 @@ def generate_launch_description():
         DeclareLaunchArgument('y', default_value='-4.5'),
         DeclareLaunchArgument('z', default_value='0'),
         DeclareLaunchArgument('yaw', default_value='0'),
+        DeclareLaunchArgument('use_sim', default_value='true', 
+                              description='Use simulation (true) or real hardware (false)'),
+        DeclareLaunchArgument('camera_device', default_value='/dev/video4',
+                              description='Camera device path for real hardware'),
+        DeclareLaunchArgument('robot_namespace', default_value='j100_0681',
+                              description='Robot namespace for real hardware'),
     ]
+
+    use_sim = LaunchConfiguration('use_sim')
+    camera_device = LaunchConfiguration('camera_device')
+    robot_namespace = LaunchConfiguration('robot_namespace')
 
     pkg_share = FindPackageShare('mobilenettt_visionnavigation')
     xacro_path = PathJoinSubstitution([pkg_share, 'urdf', 'jackal_gazebo.urdf.xacro'])
-    #yaml_file = PathJoinSubstitution([pkg_share, 'config', 'control.yaml'])
     world_path = PathJoinSubstitution([pkg_share, 'GazeboWorlds', 'u_shaped_corridor.sdf'])
 
     robot_description = ParameterValue(
@@ -29,16 +39,19 @@ def generate_launch_description():
         value='/opt/ros/jazzy/lib'
     )
 
+    # ============ SIMULATION ONLY ============
     gz_world = ExecuteProcess(
         cmd=['gz', 'sim', '-r', world_path],
-        output='screen'
+        output='screen',
+        condition=IfCondition(use_sim)
     )
 
     robot_state_publisher = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
-        parameters=[{'robot_description': robot_description}, {'use_sim_time': True}],
-        output='screen'
+        parameters=[{'robot_description': robot_description}, {'use_sim_time': use_sim}],
+        output='screen',
+        condition=IfCondition(use_sim)
     )
 
     spawn_entity = ExecuteProcess(
@@ -51,31 +64,39 @@ def generate_launch_description():
             '--Y', LaunchConfiguration('yaw'),
             '--topic', 'robot_description'
         ],
-        output='screen'
+        output='screen',
+        condition=IfCondition(use_sim)
     )
-    spawner_jsb = ExecuteProcess(
+
+    # Simulation controller spawners
+    spawner_jsb_sim = ExecuteProcess(
         cmd=['ros2', 'run', 'controller_manager', 'spawner', 'joint_state_broadcaster'],
-        output='screen'
+        output='screen',
+        condition=IfCondition(use_sim)
     )
 
-    spawner_diffdrive = ExecuteProcess(
+    spawner_diffdrive_sim = ExecuteProcess(
         cmd=['ros2', 'run', 'controller_manager', 'spawner', 'jackal_velocity_controller'],
-        output='screen'
+        output='screen',
+        condition=IfCondition(use_sim)
     )
 
-    load_jsb = RegisterEventHandler(
+    load_jsb_sim = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=spawn_entity,
-            on_exit=[spawner_jsb],
-        )
+            on_exit=[spawner_jsb_sim],
+        ),
+        condition=IfCondition(use_sim)
     )
 
-    load_diffdrive = RegisterEventHandler(
+    load_diffdrive_sim = RegisterEventHandler(
         event_handler=OnProcessExit(
-            target_action=spawner_jsb,
-            on_exit=[spawner_diffdrive],
-        )
-    )   
+            target_action=spawner_jsb_sim,
+            on_exit=[spawner_diffdrive_sim],
+        ),
+        condition=IfCondition(use_sim)
+    )
+
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -87,43 +108,148 @@ def generate_launch_description():
             "/tf@tf2_msgs/msg/TFMessage@gz.msgs.Pose_V",
             "/camera/image@sensor_msgs/msg/Image@gz.msgs.Image",
             "/camera/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo",
-
-        ],        
-        output='screen'
+        ],
+        output='screen',
+        condition=IfCondition(use_sim)
     )
 
-    
+    # ============ REAL HARDWARE ONLY ============
+    usb_cam_node = Node(
+        package='usb_cam',
+        executable='usb_cam_node_exe',
+        name='usb_cam',
+        parameters=[{
+            'video_device': camera_device,
+            'image_width': 640,
+            'image_height': 480,
+            'framerate': 30.0,
+            'pixel_format': 'yuyv',
+        }],
+        remappings=[
+            ('image_raw', '/camera/image'),
+        ],
+        output='screen',
+        condition=UnlessCondition(use_sim)
+    )
+
+    # Real hardware controller activation
+    load_jsb_real = ExecuteProcess(
+        cmd=['ros2', 'control', 'load_controller', '-c', '/j100_0681/controller_manager', 'joint_state_broadcaster'],
+        output='screen',
+        condition=UnlessCondition(use_sim)
+    )
+
+    load_velocity_real = ExecuteProcess(
+        cmd=['ros2', 'control', 'load_controller', '-c', '/j100_0681/controller_manager', 'platform_velocity_controller'],
+        output='screen',
+        condition=UnlessCondition(use_sim)
+    )
+
+    activate_jsb_real = ExecuteProcess(
+        cmd=['ros2', 'control', 'set_controller_state', '-c', '/j100_0681/controller_manager', 'joint_state_broadcaster', 'active'],
+        output='screen',
+        condition=UnlessCondition(use_sim)
+    )
+
+    activate_velocity_real = ExecuteProcess(
+        cmd=['ros2', 'control', 'set_controller_state', '-c', '/j100_0681/controller_manager', 'platform_velocity_controller', 'active'],
+        output='screen',
+        condition=UnlessCondition(use_sim)
+    )
+
+    # Chain real hardware controller loading
+    chain_load_velocity = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=load_jsb_real,
+            on_exit=[load_velocity_real],
+        ),
+        condition=UnlessCondition(use_sim)
+    )
+
+    chain_activate_jsb = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=load_velocity_real,
+            on_exit=[activate_jsb_real],
+        ),
+        condition=UnlessCondition(use_sim)
+    )
+
+    chain_activate_velocity = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=activate_jsb_real,
+            on_exit=[activate_velocity_real],
+        ),
+        condition=UnlessCondition(use_sim)
+    )
+
+    # ============ COMMON NODES ============
     ttt_node = Node(
         package='mobilenettt_visionnavigation',
         executable='compute_ttt.py',
         name='tttvalues',
-        parameters=[{'image_sub_name': '/camera/image'}, {'use_sim_time': True}],
+        parameters=[
+            {'image_sub_name': '/camera/image'},
+            {'use_sim_time': use_sim}
+        ],
         output='screen'
     )
-    controller_node = Node(
+
+    # Controller for simulation
+    controller_node_sim = Node(
         package='mobilenettt_visionnavigation',
         executable='controller.py',
         name='controller',
         parameters=[{'use_sim_time': True}],
-        output='screen'
+        remappings=[
+            ('/cmd_vel', '/cmd_vel'),
+        ],
+        output='screen',
+        condition=IfCondition(use_sim)
     )
+
+    # Controller for real hardware
+    controller_node_real = Node(
+        package='mobilenettt_visionnavigation',
+        executable='controller.py',
+        name='controller',
+        parameters=[{'use_sim_time': False}],
+        remappings=[
+            ('/cmd_vel', '/j100_0681/platform/cmd_vel'),
+        ],
+        output='screen',
+        condition=UnlessCondition(use_sim)
+    )
+
     road_marker_node = Node(
         package='mobilenettt_visionnavigation',
         executable='bezier_optical_flow.py',
         name='bezier_optical_flow',
         arguments=['1'],
-        parameters=[{'image_sub_name': '/camera/image'}, {'use_sim_time': True}],
+        parameters=[
+            {'image_sub_name': '/camera/image'},
+            {'use_sim_time': use_sim}
+        ],
         output='screen'
     )
+
     return LaunchDescription(declared_args + [
         set_gz_plugin_env,
+        # Simulation
         gz_world,
         robot_state_publisher,
         spawn_entity,
-        load_jsb,
-        load_diffdrive,
+        load_jsb_sim,
+        load_diffdrive_sim,
         bridge,
+        # Real hardware
+        usb_cam_node,
+        load_jsb_real,
+        chain_load_velocity,
+        chain_activate_jsb,
+        chain_activate_velocity,
+        # Common
         ttt_node,
-        controller_node,
-        #road_marker_node
+        controller_node_sim,
+        controller_node_real,
+        # road_marker_node
     ])

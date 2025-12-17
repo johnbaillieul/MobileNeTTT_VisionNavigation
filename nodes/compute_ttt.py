@@ -59,7 +59,7 @@ class TauValues(Node):
         self.mean_tau_l = 0
         self.mean_tau_c = 0
         
-        self.velocity = 0.5
+        self.velocity = 0.9
         
         self.first_time = False
         self.attention = True
