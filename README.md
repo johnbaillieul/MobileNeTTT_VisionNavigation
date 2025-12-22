@@ -6,8 +6,10 @@ The main code is represented by three nodes: the `/OpticalFlow node` is  respons
 
 ![Architecture Overview](assets/ICRArch2022.gif)
 
-![Demo](assets/SL_demo_fast.gif)
-
+<p align="center">
+  <img src="assets/SL_demo_cropped.gif" alt="Demo">
+</p>
+<!--Use 480fps find a way such that we can make gifs not so heavy and easy diagrams, currently 480p cropped out gif-->
 ## License and attribution
 
 If you use the code in this repository, please cite [our paper](https://arxiv.org/abs/2111.09669). The code is available under the [BSD-2-Clause License](./LICENSE).
