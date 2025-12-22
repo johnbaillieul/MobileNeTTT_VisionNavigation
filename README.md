@@ -6,7 +6,7 @@ The main code is represented by three nodes: the `/OpticalFlow node` is  respons
 
 ![Architecture Overview](assets/ICRArch2022.gif)
 
-<video src="./assets/SL_demo.mp4"></video>
+[Watch the demo video](./assets/SL_demo.mp4)
 
 ## License and attribution
 
