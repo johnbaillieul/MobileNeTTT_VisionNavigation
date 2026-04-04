@@ -38,6 +38,8 @@ If you use the code in this repository, please cite [our paper](https://arxiv.or
 **If not using local jackal urdf provided**
 - Clearpath package to simulate Jackal UGV, use the following instruction: `sudo apt-get install ros-<distro>-jackal-simulator ros-<distro>-jackal-desktop ros-<distro>-jackal-navigation`. 
 
+> [!Important]
+> In Simulation, it is important to include as many distinct features for optimal estimation performance of the trained model
 
 ## Setup and use
 
@@ -114,35 +116,8 @@ material BernoulliMix/<X>
     }
  }
  ```
- ![Features density](assets/FeaturesDensity.png)
- 
- ### Launch the Simulation
- 1. Launch the file **jackal_world.launch**. It is possible to simulate the desired world by substituting the default world with the desired one in the launch file at this line: 
-*arg name="world_name" value="$(find vision_based_navigation_ttt)/GazeboWorlds/<desired .world file>"/*. 
-The jackal robot model has a lot of different sensors but for our purposes the only needed is the monocular camera. The robot model, with the monocular camera mounted on it, can be obtained in the simulation environment by using the following command: `roslaunch vision_based_navigation_ttt jackal_world.launch config:=front_flea3`.
- 2. Run the **optical_flow.py**, **tau_computation.py** and the **controller.py** nodes by using the following command: `rosrun vision_based_navigation_ttt <name of the node>`.
-      
- ### Known Issues with ROS Noetic and Ubuntu 20.04:
-
-Because ROS Noetic mainly features Python 3, which is a major shift from Python 2 in ROS Melodic and Ubuntu 18.04, there may be a problem related to Python 3 not tolerating mixing of tabs and spaces in Python source code.  Errors of the following form may occur:
-
-`-->TabError: inconsistent use of tabs and spaces in indentation`
-      
-We are working on a solution to guarantee full support for ROS Noetic.# Vision_based_Navigation_TTT
-
-### ROS 2 Jazzy Update for Ubuntu 24.04
-
-To extend the project’s compatibility with the latest [ROS 2 Jazzy](https://docs.ros.org/en/jazzy/) distribution, I have migrated the codebase to ROS 2 Jazzy on Ubuntu 24.04. This update includes:
-
-- A fully integrated [Clearpath Jackal URDF](https://github.com/jackal/jackal) for ROS 2.
-- A new launch file [`jackal.launch.py`](./launch/jackal.launch.py) compatible.
-- Automatic node execution after simulation startup, streamlining the full workflow.
-- Adaptation of the core Python nodes (`optical_flow.py`, `tau_computation.py`, and `controller.py`) to ROS 2 architecture using `rclpy` and updated message types.
-- Included bare minimum jackal description .stl files. 
-This migration ensures the project remains relevant and fully functional on modern platforms while preserving its original design.
-
 <p align="right">
-  <img src="assets/torino_logo.png" alt="Features density" width="150"/>
+    <img src="assets/torino_logo.png" alt="Features density" width="150"/>
   &nbsp;&nbsp;&nbsp;
   <img src="assets/bu_logo.svg" alt="Features density" width="150"/>
 </p>
