@@ -1,4 +1,9 @@
-# Visual Navigation Using Sparse Optical Flow and Time-to-Transit
+# MobileNeTTT: DNN based Time-To-Transit Estimator for Visual Navigation
+
+[![ROS 2 Jazzy](https://img.shields.io/badge/ROS2-Jazzy-blueviolet)](https://docs.ros.org/en/jazzy/)
+[![Ubuntu 24.04](https://img.shields.io/badge/Ubuntu-24.04-E95420?logo=ubuntu)](https://releases.ubuntu.com/24.04/)
+[![License: BSD-2-Clause](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](./LICENSE)
+
 
 This repository contains code that allows navigation in unknown environments using only a monocular camera. The  work  takes  inspiration  from a  classic  paper  by  Lee  and  Reddish  (Nature,  1981, https://doi.org/10.1038/293293a0) in which they outline a behavioral strategy pursued by diving sea birds based on a visual cue called time-to-contact. The algorithm we introduce here is based on the estimation of a closely related quantity called time-to-transit (TTT).
 
@@ -6,7 +11,11 @@ The main code is represented by three nodes: the `/OpticalFlow node` is  respons
 
 ![Architecture Overview](assets/ICRArch2022.gif)
 
-![U_Shaped_Demo](assets/u_shaped.gif)
+<div align="center">
+    <h4>U Shaped Corridor at BU Robotics Lab</h4>
+    <img src="assets/u_shaped_readme.gif" alt="BU Robotics Lab U Shaped Corridor"/>
+
+</div>
 <!--Use 480fps find a way such that we can make gifs not so heavy and easy diagrams, currently 480p cropped out gif-->
 ## License and attribution
 
@@ -44,7 +53,11 @@ Then, it's time to run `tau_computation.py` to obtain the average time-to-transi
 
 Finally, run `controller.py` which will make your robot move at a constant forward speed (by default: 1m/s). The proper steering command will be sent to the robot to align it to the center of the environment and to avoid obstacles. The controller implements the Sense-Act cycle and it is able to choose the right control law depending on the distribution of the time-to-transit values in the image. Tau Balancing based on 2 and 4 ROIs is implemented together with the Single Wall strategy which is a new control action that enables navigation in environments with few and localized features.
 
-![Tests](assets/tests.gif)
+Dynamic Environment with moving agents.
+<div align="center">
+  <h4>Dynamic Environment with moving agents</h4>
+  <img src="assets/dynamic_env_readme.gif" alt="Dynamic_Env_w_moving_obstacles"/>
+</div>
 
 Essential parameters for these three nodes are shown below. Other parameters exist and their default values are good for a large amount of environments, but better performances can be achieved by fine-tuning them to adapt the algorithm to the particular environment in which the robot has to move.
 
@@ -119,10 +132,6 @@ We are working on a solution to guarantee full support for ROS Noetic.# Vision_b
 
 ### ROS 2 Jazzy Update for Ubuntu 24.04
 
-[![ROS 2 Jazzy](https://img.shields.io/badge/ROS2-Jazzy-blueviolet)](https://docs.ros.org/en/jazzy/)
-[![Ubuntu 24.04](https://img.shields.io/badge/Ubuntu-24.04-E95420?logo=ubuntu)](https://releases.ubuntu.com/24.04/)
-[![License: BSD-2-Clause](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](./LICENSE)
-
 To extend the project’s compatibility with the latest [ROS 2 Jazzy](https://docs.ros.org/en/jazzy/) distribution, I have migrated the codebase to ROS 2 Jazzy on Ubuntu 24.04. This update includes:
 
 - A fully integrated [Clearpath Jackal URDF](https://github.com/jackal/jackal) for ROS 2.
@@ -132,11 +141,8 @@ To extend the project’s compatibility with the latest [ROS 2 Jazzy](https://do
 - Included bare minimum jackal description .stl files. 
 This migration ensures the project remains relevant and fully functional on modern platforms while preserving its original design.
 
-### TODO:
-- Test on Jackal (Flash Ubuntu 24.04)
-- Create Docker Image
-![ROS2 Simulation](assets/ros2JazzySimulation.gif)
-
-***World in use***:`corridor_2.world`
-
-**ROS 2 Migration and Maintenance by Manuel Morteo.**
+<p align="right">
+  <img src="assets/torino_logo.png" alt="Features density" width="150"/>
+  &nbsp;&nbsp;&nbsp;
+  <img src="assets/bu_logo.svg" alt="Features density" width="150"/>
+</p>
