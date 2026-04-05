@@ -10,7 +10,7 @@ This repository contains code that allows navigation in unknown environments usi
 The main code is represented by three nodes: the `/OpticalFlow node` is  responsible  for  the  Optical Flow (OF) estimation.  It  acquires  a  sequence  of  images  from the  camera  mounted  on  the  robot  and  it  extracts the  relevant  features  to  finally  compute  the  OF vectors. The `/TauComputation node` analyzes the array of keypoints with their velocities packed in the OF message, it computes tau values and it creates input signals for the controller. The `/Controller` selects the right control action to be used depending on the distribution of TTT values and it implements the Sense-Act cycle. For full details see our ICRA2022 paper, available on [arXiv](https://arxiv.org/abs/2111.09669).
 
 <div align="center">
-    <h4>U Shaped Corridor at BU Robotics Lab</h4>
+    <h4>Past and Current Architecture</h4>
     <img src="assets/architecture.gif" width = 700 alt="BU Robotics Lab U Shaped Corridor"/>
 
 </div>
@@ -19,7 +19,7 @@ The main code is represented by three nodes: the `/OpticalFlow node` is  respons
     <h4>U Shaped Corridor at BU Robotics Lab</h4>
     <img src="assets/u_shaped_readme.gif" alt="BU Robotics Lab U Shaped Corridor"/>
 
-</div>j
+</div>
 <!--Use 480fps find a way such that we can make gifs not so heavy and easy diagrams, currently 480p cropped out gif-->
 
 ##  License and attribution
