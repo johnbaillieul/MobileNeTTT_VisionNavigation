@@ -56,15 +56,20 @@ Our navigation strategy can be used with any mobile robot equipped with a monocu
 First of all, run `nodes/compute_ttt.py` to compute Time-To-Transit values from a live camera stream. The node subscribes to a camera image topic and processes consecutive frame pairs - cropping each frame to the region of interest (rows 70-340), normalizing and concatenating them into a 6-channel input tensor. This tensor is passed through a MobileNetV3-Small backbone, optinoally enahcne with CBAM attention module (channel+spatial attention), to produce a 2-channel output: predicted TTT values and a confidence map. Cells with confidence below 0.5 are masked out, and the resulting TTT grid is published as a TTTValues.msg for downstream navigation nodes. An optional grid overlay can be displayed in real time for debugging. 
 
 Run the node with: `ros2 run mobilenettt_visionnavigation ttt_values`
+<div align="center">
+  <img src="assets/estimator.png" width="810" alt="Dynamic_Env_w_moving_obstacles"/>
+</div>
 
-![OF Node Output](assets/OFNode.gif)
-Next step is run nodes/controller.py to compute and publish velocity commands based on the TTT values received from the previous node. The node subscribes to the TTTValues.msg topic and reshapes the incoming data into a 10×20 grid, computing column-wise mean TTT values while ignoring masked-out (zero) cells. The column means are then analyzed to identify the peak TTT region (closest obstacle) and its left/right boundaries using a neighbor-search algorithm with a configurable threshold (x_percent). Based on the detected obstacle layout, the controller applies a proportional control law to generate an angular velocity command — steering the robot away from the nearest obstacle while maintaining forward motion. Three control cases are handled: obstacles on both sides, obstacle only on the left, and obstacle only on the right. The resulting TwistStamped message is published to the /cmd_vel topic. An optional histogram overlay can be enabled for debugging by setting plot_histogram = True. Run the node with:
 
 Dynamic Environment with moving agents.
+
+Next step is run nodes/controller.py to compute and publish velocity commands based on the TTT values received from the previous node. The node subscribes to the TTTValues.msg topic and reshapes the incoming data into a 10×20 grid, computing column-wise mean TTT values while ignoring masked-out (zero) cells. The column means are then analyzed to identify the peak TTT region (closest obstacle) and its left/right boundaries using a neighbor-search algorithm with a configurable threshold (x_percent). Based on the detected obstacle layout, the controller applies a proportional control law to generate an angular velocity command — steering the robot away from the nearest obstacle while maintaining forward motion. Three control cases are handled: obstacles on both sides, obstacle only on the left, and obstacle only on the right. The resulting TwistStamped message is published to the /cmd_vel topic. An optional histogram overlay can be enabled for debugging by setting plot_histogram = True. Run the node with:
+
 <div align="center">
-  <h4>Dynamic Environment with moving agents</h4>
-  <img src="assets/dynamic_env_readme.gif" alt="Dynamic_Env_w_moving_obstacles"/>
+  <img src="assets/sl_corridor.gif" width="410" alt="Dynamic_Env_w_moving_obstacles"/>
+  <img src="assets/l_corridor.gif" width="410" alt="Dynamic_Env_w_moving_obstacles"/>
 </div>
+
 
 Essential parameters for these three nodes are shown below. Other parameters exist and their default values are good for a large amount of environments, but better performances can be achieved by fine-tuning them to adapt the algorithm to the particular environment in which the robot has to move.
 
@@ -129,6 +134,14 @@ material BernoulliMix/<X>
     }
  }
  ```
+Dynamic Environment with moving agents.
+<div align="center">
+  <h4>Dynamic Environment with moving agents</h4>
+  <img src="assets/dynamic_env_readme.gif" alt="Dynamic_Env_w_moving_obstacles"/>
+</div>
+
+
+
 <p align="right">
     <img src="assets/torino_logo.png" alt="Features density" width="150"/>
   &nbsp;&nbsp;&nbsp;
