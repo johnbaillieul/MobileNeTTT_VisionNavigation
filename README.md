@@ -11,7 +11,7 @@ The main code is represented by three nodes: the `/OpticalFlow node` is  respons
 
 <div align="center">
     <h4>U Shaped Corridor at BU Robotics Lab</h4>
-    <img src="assets/architecture.gif" alt="BU Robotics Lab U Shaped Corridor"/>
+    <img src="assets/architecture.gif" width = 700 alt="BU Robotics Lab U Shaped Corridor"/>
 
 </div>
 
@@ -19,9 +19,10 @@ The main code is represented by three nodes: the `/OpticalFlow node` is  respons
     <h4>U Shaped Corridor at BU Robotics Lab</h4>
     <img src="assets/u_shaped_readme.gif" alt="BU Robotics Lab U Shaped Corridor"/>
 
-</div>
+</div>j
 <!--Use 480fps find a way such that we can make gifs not so heavy and easy diagrams, currently 480p cropped out gif-->
-## License and attribution
+
+##  License and attribution
 
 If you use the code in this repository, please cite [our paper](https://arxiv.org/abs/2111.09669). The code is available under the [BSD-2-Clause License](./LICENSE).
 
@@ -35,6 +36,9 @@ If you use the code in this repository, please cite [our paper](https://arxiv.or
 ```
 ## Prerequisites
 - Python 3.12
+- PyTorch with CUDA
+- torchvision
+- Custom `cbam.py` module (Provided in repo)
 - Ubuntu 24.04.
 - ROS2 Jazzy (EOL 2029) and Gazebo Harmonic
 - ROS-2 Control `sudo apt install ros-jazzy-ros2-control ros-jazzy-ros2-controllers`
@@ -49,15 +53,12 @@ If you use the code in this repository, please cite [our paper](https://arxiv.or
 
 Our navigation strategy can be used with any mobile robot equipped with a monocular camera.
 
-First of all, run `optical_flow.py` to obtain the optical flow vectors for a certain number of features in the image (which is divided in three regions, and for every region the most robust features are tracked). The node generates `OpticaFlow.msg` containing position, velocity (px/s) of the features and the time delta (s) between the frames considered (to make real-time computation feasible on different platforms, a choosable but fixed number of frames can be skipped). Run the .py file with an the additional integer parameter 1 (e.g. `rosrun <package> optical_flow.py 1`) if you want to enable a real-time visual representation of the node's output.
+First of all, run `nodes/compute_ttt.py` to compute Time-To-Transit values from a live camera stream. The node subscribes to a camera image topic and processes consecutive frame pairs - cropping each frame to the region of interest (rows 70-340), normalizing and concatenating them into a 6-channel input tensor. This tensor is passed through a MobileNetV3-Small backbone, optinoally enahcne with CBAM attention module (channel+spatial attention), to produce a 2-channel output: predicted TTT values and a confidence map. Cells with confidence below 0.5 are masked out, and the resulting TTT grid is published as a TTTValues.msg for downstream navigation nodes. An optional grid overlay can be displayed in real time for debugging. 
+
+Run the node with: `ros2 run mobilenettt_visionnavigation ttt_values`
 
 ![OF Node Output](assets/OFNode.gif)
-
-Then, it's time to run `tau_computation.py` to obtain the average time-to-transit values for every Region-Of-Interest (ROI). The dimension and the position of those regions can be selected and they can be adapated to the environment in which the robot moves. The number of ROIs in the code presented here is fixed but in principle it can be modified. In this case the controller must be notified of the change and different control laws must be used (stability for Tau Balancing control law with values coming from *n* different ROIs is guaranteed and simple to demonstrate, see [our paper](https://arxiv.org/abs/2111.09669)). The node outputs `TauComputation.msg` used by the controller to select the proper control action. If the number of features in a ROI is not sufficiently high to guarantee a robust TTT estimation, a -1.0 is assigned to the specific region.
-
-![Tau Computation Node Output](assets/tttnode.gif)
-
-Finally, run `controller.py` which will make your robot move at a constant forward speed (by default: 1m/s). The proper steering command will be sent to the robot to align it to the center of the environment and to avoid obstacles. The controller implements the Sense-Act cycle and it is able to choose the right control law depending on the distribution of the time-to-transit values in the image. Tau Balancing based on 2 and 4 ROIs is implemented together with the Single Wall strategy which is a new control action that enables navigation in environments with few and localized features.
+Next step is run nodes/controller.py to compute and publish velocity commands based on the TTT values received from the previous node. The node subscribes to the TTTValues.msg topic and reshapes the incoming data into a 10×20 grid, computing column-wise mean TTT values while ignoring masked-out (zero) cells. The column means are then analyzed to identify the peak TTT region (closest obstacle) and its left/right boundaries using a neighbor-search algorithm with a configurable threshold (x_percent). Based on the detected obstacle layout, the controller applies a proportional control law to generate an angular velocity command — steering the robot away from the nearest obstacle while maintaining forward motion. Three control cases are handled: obstacles on both sides, obstacle only on the left, and obstacle only on the right. The resulting TwistStamped message is published to the /cmd_vel topic. An optional histogram overlay can be enabled for debugging by setting plot_histogram = True. Run the node with:
 
 Dynamic Environment with moving agents.
 <div align="center">
@@ -102,7 +103,15 @@ Note that it is also possible to tune the duration of the *Sense* and *Act* cycl
 ## Virtual environments
 To simulate the behavior of the algorithm in artificial and realistic environments, many scenarios are created in Gazebo. In this repository you will find the code to recreate them in the **GazeboWorlds** folder.  
 
-![Gazebo Environment](assets/Environments.jpg)
+<p align="center">
+  <img src="assets/virtual_l_shaped.png" width="200" alt="Dynamic_Env_w_moving_obstacles"/>
+  &nbsp;&nbsp;&nbsp;
+  <img src="assets/virtual_zig_zag.png" width="200" alt="Zig Zag Environment"/>
+  &nbsp;&nbsp;&nbsp;
+  <img src="assets/aerial_view.png" width="250" alt="Dynamic_Env_w_moving_obstacles"/>
+</p>
+
+
 
 We also developed patterns to be put on the walls with fixed feature density (Bernoulli distributions of features). The pattern can be created using the `Bernoulli_Textures.py` python scripts in which the density of the features can be set manually. Then the new pattern must be added to the Gazebo materials, the *bernoullixM.png* (where x is the percentage indicating the feature density chosen) generated by the python script has to be saved in `/usr/share/gazebo<y>/media/materials/textures` (where y is the Gazebo version). To use the new material in Gazebo, a *bernoullixM.material* file must be created and saved in `/usr/share/gazebo<y>/media/materials/scripts`. An example of *bernoullixM.material* is:
 ```
