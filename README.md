@@ -11,7 +11,7 @@ Time-to-Transit (TTT) is a perceptual cue believed to be computed in the visual 
  
 The  work  takes  inspiration  from a  classic  paper  by  Lee  and  Reddish  (Nature,  1981, https://doi.org/10.1038/293293a0) in which they outline a behavioral strategy pursued by diving sea birds based on a visual cue called time-to-contact. 
 
-The main code is represented by 2 nodes: the `/nodes/compute_ttt.py` is  responsible  for  the TTT estimation.  It  acquires  a  sequence  of  images  from the  camera  mounted  on  the  robot  and  it  extracts the  relevant  features  to  finally  compute  the  OF vectors. The `/nodes/controller` organizes the TTT values into a 10x20 grid structure where dynamic regions are introduce. For full details see our Conference202x paper, available on [arXiv](https://arxiv.org/abs/2111.09669).
+The main code is represented by 2 nodes: the `/nodes/compute_ttt.py` is  responsible  for  the TTT estimation.  It  acquires  a  sequence  of  images  from the  camera  mounted  on  the  robot  and  it  extracts the  relevant  features  to  finally  compute  the  OF vectors. The `/nodes/controller_dynamic.py` organizes the TTT values into a 10x20 grid structure where dynamic regions are introduce. For full details see our Conference202x paper, available on [arXiv](https://arxiv.org/abs/2111.09669).
 
 <div align="center">
     <h4>Past and Current Architecture</h4>
@@ -67,7 +67,7 @@ Next Step is to run nodes/controller_dynamic.py to generate velocity commands fr
   <img src="assets/sl_corridor.gif" width="410" alt="Dynamic_Env_w_moving_obstacles"/>
   <img src="assets/l_corridor.gif" width="410" alt="Dynamic_Env_w_moving_obstacles"/>
 </div>
-
+<sup><sub>Video Speed 7x</sub></sup>
 
 Essential parameters for these three nodes are shown below. Other parameters exist and their default values are good for a large amount of environments, but better performances can be achieved by fine-tuning them to adapt the algorithm to the particular environment in which the robot has to move.
 
@@ -152,7 +152,7 @@ material BernoulliMix/<X>
     <td align="center">U Shaped Corridor @ BU Robotics Lab</td>
   </tr>
 </table>
-
+<sub>Video speeds: 7x and 3x</sub>
 <p align="right">
     <img src="assets/torino_logo.png" alt="Features density" width="150"/>
   &nbsp;&nbsp;&nbsp;
