@@ -128,11 +128,19 @@ material BernoulliMix/<X>
        }  
     }
  }
- ```
 
-| Dynamic Environment w moving agents | U-Shaped Corridor @ BU Robotics Lab|
-|:---:|:---:|
-| <img src="assets/dynamic_env_readme.gif" width="410" alt="Dynamic_Env_w_moving_obstacles"/> | <img src="assets/u_shaped_readme.gif" width="410" alt="BU Robotics Lab U Shaped Corridor"/> |
+ ```
+## Demonstrations
+<table>
+  <tr>
+    <td align="center"><img src="assets/dynamic_env_readme.gif" width="400" alt="Dynamic_Env_w_moving_obstacles"/></td>
+    <td align="center"><img src="assets/u_shaped_readme.gif" width="400" alt="BU Robotics Lab U Shaped Corridor"/></td>
+  </tr>
+  <tr>
+    <td align="center">Environment with Dynamic agents</td>
+    <td align="center">U Shaped Corridor @ BU Robotics Lab</td>
+  </tr>
+</table>
 
 <p align="right">
     <img src="assets/torino_logo.png" alt="Features density" width="150"/>
