@@ -158,6 +158,7 @@ material BernoulliMix/<X>
   </tr>
 </table>
 <sup><sub>Video speeds: 7x and 3x</sub></sup>
+
 ### Future Work
 This work improves time-to-transit estimation
 with a novel architectural approach. The ability to operate
