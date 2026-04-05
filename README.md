@@ -2,12 +2,16 @@
 
 [![ROS 2 Jazzy](https://img.shields.io/badge/ROS2-Jazzy-blueviolet)](https://docs.ros.org/en/jazzy/)
 [![Ubuntu 24.04](https://img.shields.io/badge/Ubuntu-24.04-E95420?logo=ubuntu)](https://releases.ubuntu.com/24.04/)
+<a href="https://arxiv.org"><img src="https://img.shields.io/badge/arXiv-b31b1b?style=flat&logo=arxiv&logoColor=white"></a>
+
 [![License: BSD-2-Clause](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](./LICENSE)
 
 
-This repository contains code that allows navigation in unknown environments using only a monocular camera. The  work  takes  inspiration  from a  classic  paper  by  Lee  and  Reddish  (Nature,  1981, https://doi.org/10.1038/293293a0) in which they outline a behavioral strategy pursued by diving sea birds based on a visual cue called time-to-contact. The algorithm we introduce here is based on the estimation of a closely related quantity called time-to-transit (TTT).
+Time-to-Transit (TTT) is a perceptual cue believed to be computed in the visual cortex that allows animals to estimate the time remaining to move past features in the environment.  In a previous work, we showed how TTT estimation could be carried out using sparse optical flow based on the classical Lucas-Kanade method.  This proposes an alternative approach to monocular camera navigation in which (1) the useful field of view is larger; (2) the motion of the camera need not be constant along a straight line path; and (3) the steering automatically adjusts to changes in the geometry of observed features--thereby allowing a camera equipped robot to autonomously follow curved paths and steer around obstacles.  The proposed steering control is implemented using a lightweight deep neural network estimator that we have named MobileNeTTT. 
+ 
+The  work  takes  inspiration  from a  classic  paper  by  Lee  and  Reddish  (Nature,  1981, https://doi.org/10.1038/293293a0) in which they outline a behavioral strategy pursued by diving sea birds based on a visual cue called time-to-contact. 
 
-The main code is represented by three nodes: the `/OpticalFlow node` is  responsible  for  the  Optical Flow (OF) estimation.  It  acquires  a  sequence  of  images  from the  camera  mounted  on  the  robot  and  it  extracts the  relevant  features  to  finally  compute  the  OF vectors. The `/TauComputation node` analyzes the array of keypoints with their velocities packed in the OF message, it computes tau values and it creates input signals for the controller. The `/Controller` selects the right control action to be used depending on the distribution of TTT values and it implements the Sense-Act cycle. For full details see our ICRA2022 paper, available on [arXiv](https://arxiv.org/abs/2111.09669).
+The main code is represented by 2 nodes: the `/nodes/compute_ttt.py` is  responsible  for  the TTT estimation.  It  acquires  a  sequence  of  images  from the  camera  mounted  on  the  robot  and  it  extracts the  relevant  features  to  finally  compute  the  OF vectors. The `/nodes/controller` organizes the TTT values into a 10x20 grid structure where dynamic regions are introduce. For full details see our Conference202x paper, available on [arXiv](https://arxiv.org/abs/2111.09669).
 
 <div align="center">
     <h4>Past and Current Architecture</h4>
@@ -15,11 +19,7 @@ The main code is represented by three nodes: the `/OpticalFlow node` is  respons
 
 </div>
 
-<div align="center">
-    <h4>U Shaped Corridor at BU Robotics Lab</h4>
-    <img src="assets/u_shaped_readme.gif" alt="BU Robotics Lab U Shaped Corridor"/>
 
-</div>
 <!--Use 480fps find a way such that we can make gifs not so heavy and easy diagrams, currently 480p cropped out gif-->
 
 ##  License and attribution
@@ -61,9 +61,9 @@ Run the node with: `ros2 run mobilenettt_visionnavigation ttt_values`
 </div>
 
 
-Dynamic Environment with moving agents.
+Next Step is to run nodes/controller_dynamic.py to generate velocity commands from the TTT values computed by the previous node. The node analyzes the TTT grid to locate the nearest obstacle and its position relative to the robot, then applies a proportional control law to steer away from it while maintaining forward motion. The resulting TwistStamped message is published to /cmd_vel. Run the node with:
 
-Next step is run nodes/controller.py to compute and publish velocity commands based on the TTT values received from the previous node. The node subscribes to the TTTValues.msg topic and reshapes the incoming data into a 10×20 grid, computing column-wise mean TTT values while ignoring masked-out (zero) cells. The column means are then analyzed to identify the peak TTT region (closest obstacle) and its left/right boundaries using a neighbor-search algorithm with a configurable threshold (x_percent). Based on the detected obstacle layout, the controller applies a proportional control law to generate an angular velocity command — steering the robot away from the nearest obstacle while maintaining forward motion. Three control cases are handled: obstacles on both sides, obstacle only on the left, and obstacle only on the right. The resulting TwistStamped message is published to the /cmd_vel topic. An optional histogram overlay can be enabled for debugging by setting plot_histogram = True. Run the node with:
+`ros2 run mobilenettt_visionnavigation controller_dynamic`
 
 <div align="center">
   <img src="assets/sl_corridor.gif" width="410" alt="Dynamic_Env_w_moving_obstacles"/>
@@ -73,37 +73,32 @@ Next step is run nodes/controller.py to compute and publish velocity commands ba
 
 Essential parameters for these three nodes are shown below. Other parameters exist and their default values are good for a large amount of environments, but better performances can be achieved by fine-tuning them to adapt the algorithm to the particular environment in which the robot has to move.
 
-### Parameters for `optical_flow.py`
-
+### Parameters for `compute_ttt.py`
 | Parameter            | Description                                                                                                   |    Example Value  |
 | -------------------- | ------------------------------------------------------------------------------------------------------------- | :---------------: |
-| ~image_sub_name      | name of the Image topic to subscribe.                                                                         | "front/image_raw" |
-| ~num_ext_features    | max number of features to be detected in the two outer parts of the image.                                    |        250        |
-| ~num_cen_features    | max number of features to be detected in the central part of the image.                                       |        150        |
-| ~min_feat_threshold  | minimum % of tracked features that must still be in the image to avoid the reusage of the detector. Parameter must stay in range (0.0-1.0].      |        0.7        |
+| ~camera_topic        | Name of the Image topic to subscribe to.                                                                      | "/camera/image"   |
+| ~camera_info_topic   | Name of the CameraInfo topic to subscribe to.                                                                 | "/camera_color/camera_info" |
+| ~ttt_topic           | Name of the topic to publish TTT values to.                                                                   | "/ttt_values"     |
+| ~velocity            | Forward velocity of the robot used to normalize TTT values in the grid display.                               |       0.9         |
+| ~attention           | Enables CBAM attention module in the MobileNetV3 backbone.                                                    |       True        |
+| ~spatial_att_modified| Enables spatial attention within the CBAM module.                                                             |       False       |
+| ~plot_grid           | Enables real-time TTT grid overlay on the camera image.                                                       |       True        |
+| ~crop_params         | Pixel rows and columns used to crop the input image before inference (top, left, height, width).              | (70, 0, 340, 640) |
 
-### Parameters for `tau_computation.py`
-
-| Parameter            | Description                                                                                                   |        Example Value      |
-| -------------------- | ------------------------------------------------------------------------------------------------------------- | :-----------------------: |
-| ~image_sub_name      | name of Image topic to subscribe to allow visual representation of results of the node. The same used in `optical_flow.py` | "front/image_raw": |
-| ~min_TTT_number      | minimum number of features needed to compute the average TTT for each ROI                                     |             10            |
-| ~x_init_*ROI*        | x coordinate of the top left corner of ROI                                                                    |              0            |
-| ~y_init_*ROI*        | y coordinate of the top left corner of ROI                                                                    |              0            |
-| ~x_end_*ROI*         | x coordinate of the bottom right corner of ROI                                                                | int(3\*img_width/12)      |
-| ~y_end_*ROI*         | y coordinate of the bottom right corner of ROI                                                                | int(7.5\*img_width/12)    |
-
-where *ROI*={*el*: far left ROI, *er*: far right ROI, *l*: left ROI, *r*: right ROI, *c*: central ROI}
-
-### Parameters for `controller.py`
-
-| Parameter            | Description                                                                                                   |        Example Value      |
-| -------------------- | ------------------------------------------------------------------------------------------------------------- | :-----------------------: |
-| ~robot_publisher     | name of topic on which the control action generated by the node has to be published.                          | "jackal_velocity_controller/cmd_vel" 
-| ~percentage          | percentage of discarded time-to-transit values for each ROI                                                   |             0.25           
-| ~max_u               | saturation value for the control input. It depends on the specifics of the selected robot.                    |              1            |
-
-Note that it is also possible to tune the duration of the *Sense* and *Act* cycles.
+### Parameters for `controller_dynamic.py`
+| Parameter            | Description                                                                                                   |    Example Value  |
+| -------------------- | ------------------------------------------------------------------------------------------------------------- | :---------------: |
+| ~camera_topic        | Name of the Image topic to subscribe to.                                                                      | "/camera/image"   |
+| ~camera_info_topic   | Name of the CameraInfo topic to subscribe to.                                                                 | "/camera_color/camera_info" |
+| ~ttt_topic           | Name of the TTT values topic to subscribe to.                                                                 | "/ttt_values"     |
+| ~velocity_topic      | Name of the topic to publish velocity commands to.                                                            | "/cmd_vel"        |
+| ~velocity            | Forward speed of the robot.                                                                                   |        5          |
+| ~kp_e                | Proportional gain for extreme left/right obstacle regions.                                                    |       0.1         |
+| ~kp                  | Proportional gain for center obstacle region.                                                                 |       0.3         |
+| ~max_control         | Maximum angular velocity command sent to the robot.                                                           |       1.0         |
+| ~x_percent           | Percentage threshold used to identify left/right boundary neighbors of the peak TTT column.                   |        10         |
+| ~constant            | Reference TTT value used when only a single-side obstacle is detected.                                        |        6          |
+| ~plot_histogram      | Enables real-time TTT histogram overlay on the camera image for debugging.                                    |      False        |Note that it is also possible to tune the duration of the *Sense* and *Act* cycles.
 
 ## Virtual environments
 To simulate the behavior of the algorithm in artificial and realistic environments, many scenarios are created in Gazebo. In this repository you will find the code to recreate them in the **GazeboWorlds** folder.  
@@ -134,13 +129,10 @@ material BernoulliMix/<X>
     }
  }
  ```
-Dynamic Environment with moving agents.
-<div align="center">
-  <h4>Dynamic Environment with moving agents</h4>
-  <img src="assets/dynamic_env_readme.gif" alt="Dynamic_Env_w_moving_obstacles"/>
-</div>
 
-
+| Dynamic Environment w moving agents | U-Shaped Corridor @ BU Robotics Lab|
+|:---:|:---:|
+| <img src="assets/dynamic_env_readme.gif" width="420" alt="Dynamic_Env_w_moving_obstacles"/> | <img src="assets/u_shaped_readme.gif" width="420" alt="BU Robotics Lab U Shaped Corridor"/> |
 
 <p align="right">
     <img src="assets/torino_logo.png" alt="Features density" width="150"/>
