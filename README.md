@@ -134,7 +134,7 @@ material BernoulliMix/<X>
 <table>
   <tr>
     <td align="center"><img src="assets/dynamic_env_readme.gif" width="400" alt="Dynamic_Env_w_moving_obstacles"/></td>
-    <td align="center"><img src="assets/u_shaped_readme.gif" width="400" alt="BU Robotics Lab U Shaped Corridor"/></td>
+    <td align="center"><img src="assets/u_shaped_readme.gif" width="380" alt="BU Robotics Lab U Shaped Corridor"/></td>
   </tr>
   <tr>
     <td align="center">Environment with Dynamic agents</td>
