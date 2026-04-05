@@ -152,7 +152,7 @@ material BernoulliMix/<X>
     <td align="center">U Shaped Corridor @ BU Robotics Lab</td>
   </tr>
 </table>
-<sub>Video speeds: 7x and 3x</sub>
+<sup><sub>Video speeds: 7x and 3x</sub></sup>
 <p align="right">
     <img src="assets/torino_logo.png" alt="Features density" width="150"/>
   &nbsp;&nbsp;&nbsp;
