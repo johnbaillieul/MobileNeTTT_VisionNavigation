@@ -72,7 +72,7 @@ Next Step is to run nodes/controller_dynamic.py to generate velocity commands fr
 > [!Tip]
 > Launch file is included in `/launch/mobilenettt.launch.py` for appropriate gazebo/node/controller manager startup sequence.This launch file could serve as a template for the user for both simulation and the real robot. The following command:
 
-`ros2 launch mobilnettt mobilnettt.launch.py use_sim:=<boolean value>`
+`ros2 launch mobilnettt_visionnavigation mobilnettt.launch.py use_sim:=<boolean value>`
 
 Later on I will provide a concise command sheet to run the simulation and use its functionalities.
 Essential parameters for these three nodes are shown below. Other parameters exist and their default values are good for a large amount of environments, but better performances can be achieved by fine-tuning them to adapt the algorithm to the particular environment in which the robot has to move.
