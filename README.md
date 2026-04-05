@@ -74,7 +74,6 @@ Next Step is to run nodes/controller_dynamic.py to generate velocity commands fr
 
 `ros2 launch mobilnettt_visionnavigation mobilnettt.launch.py use_sim:=<boolean value>`
 
-Later on I will provide a concise command sheet to run the simulation and use its functionalities.
 Essential parameters for these three nodes are shown below. Other parameters exist and their default values are good for a large amount of environments, but better performances can be achieved by fine-tuning them to adapt the algorithm to the particular environment in which the robot has to move.
 
 ### Parameters for `compute_ttt.py`
@@ -83,7 +82,7 @@ Essential parameters for these three nodes are shown below. Other parameters exi
 | ~camera_topic        | Name of the Image topic to subscribe to.                                                                      | "/camera/image"   |
 | ~camera_info_topic   | Name of the CameraInfo topic to subscribe to.                                                                 | "/camera_color/camera_info" |
 | ~ttt_topic           | Name of the topic to publish TTT values to.                                                                   | "/ttt_values"     |
-| ~velocity            | Forward velocity of the robot used to normalize TTT values in the grid display.                               |       0.9         |
+| ~velocity            | Forward velocity of the robot used to normalize TTT values in the grid display.                               |       0.4         |
 | ~attention           | Enables CBAM attention module in the MobileNetV3 backbone.                                                    |       True        |
 | ~spatial_att_modified| Enables spatial attention within the CBAM module.                                                             |       False       |
 | ~plot_grid           | Enables real-time TTT grid overlay on the camera image.                                                       |       True        |
@@ -159,6 +158,13 @@ material BernoulliMix/<X>
   </tr>
 </table>
 <sup><sub>Video speeds: 7x and 3x</sub></sup>
+### Future Work
+This work improves time-to-transit estimation
+with a novel architectural approach. The ability to operate
+in dynamic, sparse environments and generate broader TTT
+grids opens the door for advanced control laws, potentially
+optimized with reinforcement learning. Although not ex-
+plored here, this is a future research direction.
 <p align="right">
     <img src="assets/torino_logo.png" alt="Features density" width="150"/>
   &nbsp;&nbsp;&nbsp;
