@@ -38,8 +38,8 @@ class TauValues(Node):
         self.camera_topic = self.get_parameter('camera_topic').get_parameter_value().string_value
         self.camera_info_topic = self.get_parameter('camera_info_topic').get_parameter_value().string_value
         self.ttt_topic = self.get_parameter('ttt_topic').get_parameter_value().string_value
-        self.pub_ttt = self.create_publisher(TTTValues, self.ttt_topic, 2)
-        self.sub_camera = self.create_subscription(Image, self.camera_topic, self.image_callback, 10)
+        self.pub_ttt = self.create_publisher(TTTValues, self.ttt_topic, 1)
+        self.sub_camera = self.create_subscription(Image, self.camera_topic, self.image_callback, 2)
         self.sub_camera
         
         self.bridge = CvBridge()
@@ -88,7 +88,7 @@ class TauValues(Node):
             model = self.mobilenet_network()
             weights_path = os.path.join(package_dir, 'trained_weights', 'mobilenetV3_small_lossgeneralnorm2.pth')
         
-        model.load_state_dict(torch.load(weights_path, map_location=device))
+        model.load_state_dict(torch.load(weights_path, map_location=device, weights_only=True))
         model.to(device)
         
         return model

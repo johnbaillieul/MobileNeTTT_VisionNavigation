@@ -77,13 +77,13 @@ class Controller(Node):
         self.plot_histogram = False
         
         self.max_u = 1
-        self.kp_e = 0.1
-        self.kp = 0.3
+        self.kp_e = 0.15
+        self.kp = 0.25
         
         #self.kp_e = 0.3
         #self.kp = 0.2
         self.max_control = 1.0
-        self.velocity = 5
+        self.velocity = 0.4
         
         
     def find_obstacle(self, mean, t):
@@ -117,7 +117,7 @@ class Controller(Node):
             left_candidates = left_vals[left_vals <= threshold]
             left_max = np.max(left_candidates) if left_candidates.size > 0 else None
             if left_max != None:
-                left_max_idx = np.where(left_vals == left_max)[0]
+                left_max_idx = np.where(left_vals == left_max)[0][0]
             else:
                 left_max_idx = None
                 left_candidates = np.zeros(5)
@@ -137,7 +137,7 @@ class Controller(Node):
             right_candidates = right_vals[right_vals <= threshold]
             right_max = np.max(right_candidates) if right_candidates.size > 0 else None
             if right_max != None:
-                right_max_idx = np.where(right_vals == right_max)[0]
+                right_max_idx = np.where(right_vals == right_max)[0][0]
                 right_max_idx = right_max_idx + max_idx+1
             else:
                 right_max_idx = None
@@ -264,8 +264,9 @@ class Controller(Node):
         
         ttt_array[ttt_array == 0] = np.nan 
         
+        # Grabs means of each of the 20 columns
         col_means_ttt = np.nanmean(ttt_array, axis=0)
-        
+ 
         
         max_val, left_max, right_max, max_idx, left_max_idx, right_max_idx, left_candidates, right_candidates = self.find_neighbors(col_means_ttt)
         
@@ -273,19 +274,21 @@ class Controller(Node):
         #final_tau_right_e = np.mean(right_candidates)
         #final_tau_left_e = np.mean(left_candidates)
         
+        # FIXED: Use max_val instead of 0 when there's an opening (no boundary detected)
+        # This represents "free space" or "far away obstacle"
         if left_max is not None:
             left_thr = int(left_max_idx)
             final_tau_left_e = np.mean(left_candidates)
         else:
             left_thr = -1
-            final_tau_left_e = 0
+            final_tau_left_e = max_val  # FIXED: Was 0, now max_val (represents opening)
             
         if right_max is not None:
             right_thr = int(right_max_idx)
             final_tau_right_e = np.mean(right_candidates)
         else:
             right_thr = 30
-            final_tau_right_e = 0
+            final_tau_right_e = max_val  # FIXED: Was 0, now max_val (represents opening)
         
         if right_max is not None and left_max is not None:
             final_tau_center = np.mean(col_means_ttt[int(left_max_idx):int(right_max_idx)])
@@ -304,13 +307,14 @@ class Controller(Node):
         print(f'Tau Right Extreme: {final_tau_right_e}')
         print(f'Tau Center: {final_tau_center}')
         
-        if final_tau_right_e != 0:
+        # FIXED: Now we check if the value is significantly high (opening) rather than just != 0
+        if final_tau_right_e > 0.1:  # Small threshold to avoid numerical errors
             self.extreme_right = True
             self.final_right_e = final_tau_right_e
-        if final_tau_left_e != 0:
+        if final_tau_left_e > 0.1:  # Small threshold to avoid numerical errors
             self.extreme_left = True
             self.final_left_e = final_tau_left_e
-        if final_tau_center != 0:
+        if final_tau_center > 0.1:  # Small threshold to avoid numerical errors
             self.center = True
             self.final_center = final_tau_center
         
@@ -323,9 +327,9 @@ class Controller(Node):
 ###########################################################################################
             if self.center and (self.final_center<0.55) and (self.final_center > 0.3):
                 if self.final_left_e < self.final_right_e:
-                    control_e = -0.25
+                    control_e = -0.55
                 else:
-                    control_e = 0.25
+                    control_e = 0.5
             else: 
                 print("Complete Extreme control!")
                 control_e = self.kp_e*(self.final_left_e - self.final_right_e)
@@ -335,22 +339,22 @@ class Controller(Node):
             control_e = self.kp_e*(self.final_left_e - self.constant)
             if self.center and (self.final_center<0.55) and (self.final_center > 0.3):
                 if self.final_left_e < self.final_right_e:
-                    control_e = -0.2
+                    control_e = -0.5
                 else:
-                    control_e = 0.2
+                    control_e = 0.5
             else: 
-                print("Complete Extreme control!")
+                print("Extreme Left control!")
                 control_e = self.kp_e*(self.final_left_e - self.constant)
         elif self.extreme_right:
             print("Extreme Right control!")
             control_e = -self.kp_e*(self.final_right_e - self.constant)
             if self.center and (self.final_center<0.55) and (self.final_center > 0.3):
                 if self.final_left_e < self.final_right_e:
-                    control_e = -0.2
+                    control_e = -0.5
                 else:
-                    control_e = 0.2
+                    control_e = 0.5
             else: 
-                print("Complete Extreme control!")
+                print("Extreme Right control!")
                 control_e = -self.kp_e*(self.final_right_e - self.constant)
             
         control = control_e
@@ -358,8 +362,10 @@ class Controller(Node):
         print(f'The control action is: {control}')
         
         msg = TwistStamped()
-        msg.linear.x = float(self.velocity)
-        msg.angular.z = float(control)
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = 'base_link'
+        msg.twist.linear.x = float(self.velocity)
+        msg.twist.angular.z = float(control)
         
         self.pub_velocity.publish(msg)
         
