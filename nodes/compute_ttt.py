@@ -27,7 +27,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class TauValues(Node):
     def __init__(self):
-        super().__init__('tttvalues')
+        super().__init__('ttt_values')
         self.declare_parameters(namespace='',
             parameters=[
                 ('camera_topic', "/camera/image"),

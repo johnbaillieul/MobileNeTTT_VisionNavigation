@@ -16,8 +16,6 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
-
-
 ## Declare message files
 set(msg_files
   "msg/OpticalFlow.msg"
@@ -50,6 +48,7 @@ install(DIRECTORY
 install(PROGRAMS
   nodes/compute_ttt.py
   nodes/controller.py 
+  nodes/controller_dynamic.py
   nodes/bezier_optical_flow.py
   cbam.py
   

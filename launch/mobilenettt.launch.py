@@ -9,8 +9,8 @@ from launch_ros.parameter_descriptions import ParameterValue
 
 def generate_launch_description():
     declared_args = [
-        DeclareLaunchArgument('x', default_value='-11'),
-        DeclareLaunchArgument('y', default_value='-4.5'),
+        DeclareLaunchArgument('x', default_value='-8'),
+        DeclareLaunchArgument('y', default_value='-6.5'),
         DeclareLaunchArgument('z', default_value='0'),
         DeclareLaunchArgument('yaw', default_value='0'),
         DeclareLaunchArgument('use_sim', default_value='true', 
@@ -27,7 +27,7 @@ def generate_launch_description():
 
     pkg_share = FindPackageShare('mobilenettt_visionnavigation')
     xacro_path = PathJoinSubstitution([pkg_share, 'urdf', 'jackal_gazebo.urdf.xacro'])
-    world_path = PathJoinSubstitution([pkg_share, 'GazeboWorlds', 'u_shaped_corridor.sdf'])
+    world_path = PathJoinSubstitution([pkg_share, 'GazeboWorlds', 'obstacle_course.sdf'])
 
     robot_description = ParameterValue(
         Command(['xacro ', xacro_path]),
@@ -201,11 +201,11 @@ def generate_launch_description():
     # Controller for simulation
     controller_node_sim = Node(
         package='mobilenettt_visionnavigation',
-        executable='controller.py',
+        executable='controller_dynamic.py',
         name='controller',
         parameters=[{'use_sim_time': True}],
         remappings=[
-            ('/cmd_vel', '/cmd_vel'),
+            ('/cmd_vel', '/jackal_velocity_controller/cmd_vel'),
         ],
         output='screen',
         condition=IfCondition(use_sim)
@@ -214,7 +214,7 @@ def generate_launch_description():
     # Controller for real hardware
     controller_node_real = Node(
         package='mobilenettt_visionnavigation',
-        executable='controller.py',
+        executable='controller_dynamic.py',
         name='controller',
         parameters=[{'use_sim_time': False}],
         remappings=[
@@ -222,18 +222,6 @@ def generate_launch_description():
         ],
         output='screen',
         condition=UnlessCondition(use_sim)
-    )
-
-    road_marker_node = Node(
-        package='mobilenettt_visionnavigation',
-        executable='bezier_optical_flow.py',
-        name='bezier_optical_flow',
-        arguments=['1'],
-        parameters=[
-            {'image_sub_name': '/camera/image'},
-            {'use_sim_time': use_sim}
-        ],
-        output='screen'
     )
 
     return LaunchDescription(declared_args + [
@@ -254,6 +242,6 @@ def generate_launch_description():
         # Common
         ttt_node,
         controller_node_sim,
-        controller_node_real,
+        #controller_node_real,
         # road_marker_node
     ])

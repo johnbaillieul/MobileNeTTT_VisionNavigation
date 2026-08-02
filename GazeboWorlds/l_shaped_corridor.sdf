@@ -76,13 +76,7 @@
         <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/NIST%20maze%20wall%20120</uri>
       <pose>-3.5 -4.90 0 0 1.57 1.57</pose>
     </include>
-    <include>
-      <name>postbox_1</name>
-      <uri>
-        https://fuel.gazebosim.org/1.0/OpenRobotics/models/Postbox
-      </uri>
-    <pose>-4.5 -4.50 0 0 0 0.0</pose>  
-    </include>
+  
     <include>
       <name>tree_2</name>
       <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Pine%20Tree</uri>

@@ -29,7 +29,7 @@ class Controller(Node):
             ('camera_topic', "/camera/image"),
             ('camera_info_topic', "/camera_color/camera_info"), 
             ('ttt_topic', "/ttt_values"),
-            ('velocity_topic', "/cmd_vel")
+            ('velocity_topic', "/jackal_velocity_controller/cmd_vel")
             ])
         
         self.camera_topic = self.get_parameter('camera_topic').get_parameter_value().string_value
@@ -76,14 +76,14 @@ class Controller(Node):
         
         self.plot_histogram = False
         
-        self.max_u = 1
-        self.kp_e = 0.15
-        self.kp = 0.25
+        self.max_u = 0.6
+        self.kp_e = 0.6
+        self.kp = 0.6
         
         #self.kp_e = 0.3
         #self.kp = 0.2
-        self.max_control = 1.0
-        self.velocity = 0.4
+        self.max_control = 0.6
+        self.velocity = 0.8
         
         
     def find_obstacle(self, mean, t):

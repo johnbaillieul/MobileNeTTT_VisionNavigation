@@ -61,12 +61,12 @@ class Controller(Node):
         self.left = False
         self.center = False
         
-        self.max_u = 1
-        self.kp_e = 1.0
-        self.kp = 0.9
+        self.max_u = 0.6
+        self.kp_e = 0.6
+        self.kp = 0.6
         
-        self.max_control = 1.0
-        self.velocity = 1.0
+        self.max_control = 0.6
+        self.velocity = 0.8
         
         self.get_logger().info(f'Controller initialized, publishing to: {self.velocity_topic}')
         
